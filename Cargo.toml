@@ -6,7 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-itertools = "0.11.0"
-multiset = "0.0.5"
-pretty_assertions = "1.4.0"
+multiset = { git = "https://github.com/antonio-dropulic/multiset", branch = "with_capacity" }
 thiserror = "1.0.47"
+
+[dev-dependencies]
+itertools = "0.11.0"
+criterion = "0.5.1"
+pretty_assertions = "1.4.0"
+
+
+[[bench]]
+name = "bench"
+harness = false
