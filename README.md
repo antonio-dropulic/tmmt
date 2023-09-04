@@ -41,6 +41,4 @@ This test is implemented and passing in [`tests::example`](https://github.com/an
 
 ## Notes:
 
-I've played around with two pointer implementation of the validation algorithm. It made initialization much faster. $O(log(N))$ instead $O(N^2)$ where N is validation window size. Validation(insertion) was much slower - more than 5 times with the validation window size 100 using u128 as block.
-It seemed to scale linearly. Somehow the current implementation for small validation window sizes **(5, 50, 100)** seems to perform in
-$O(1)$. On my machine running [`Mine::try_extend_one`](https://github.com/antonio-dropulic/tmmt/blob/15bf1e971d5cb9b0da844221c147bd49304d016c/src/lib.rs#L83-L110) (for valid inputs) on the mentioned window sizes I measure 18 ns avg for all of them.
+I've played around with two pointer implementation of the validation algorithm. It made initialization much faster. $O(log(N))$ instead $O(N^2)$ where N is validation window size. But validation time was still slower. Both validation implementations are bounded by $O(N)$.
