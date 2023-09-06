@@ -41,10 +41,11 @@ This test is implemented and passing in [`tests::example`](https://github.com/an
 
 ## Notes:
 
-I've played around with two pointer implementation of the validation algorithm. It made initialization much faster. $O(log(N))$ instead $O(N^2)$ where N is validation window size. But validation time was still slower. Both validation implementations are bounded by $O(N)$.
+Two competing implementations are given. One using the hash map and one using the two pointer approach. Initially I thought of initialization as negligible - validation window is limited, number of incoming blocks isn't - and the idea was to have `try_extend_one` to be as fast as possible.
+That is what hash map implementation was meant to do. Having difficulty creating a criterion test for `try_extend_one` I realized I have misjudged the problem.
 
-My initial idea driving the implementation was that validating elements and extending the mine is more important than initialization.
-If assume that block values in the mine are non zero, or at least that the initialization sequence has less than two zeroes. Then we come
-to an iteration count bound on every mine: $VALIDATION_WINDOW_SIZE * log(Block::SIZE) - 1$. Imagine we start with a validation window of all ones. Next validation window that has the smallest elements possible is a validation window [2,2, ... , 3]. Next one doubles, and so forth.
+The key idea I missed when analyzing the problem was that the sequence of values that can be given for validation is limited. If we assume the initial values are non zero (Idea not enforced in the code, but still reasonable given uniform datasets). Then the
+number of iterations over `try_extend_one` is necessarily bounded. Imagine we start with a validation window size N with all ones: `[1; N]`. The smallest value we can then validate is 2. and we can do that N - 1 times before we have to double the smallest value.
+That means the iteration count is bounded by $N * Block::BITS$.
 
-This suggests that my initial idea was flawed. I now want to make tests that test the duration of creation and maximum number of iterations. (Current tests seem decent enough). This may change my perception of how the two pointer implementation performs.
+This suggests `TwoPointerMine` is better. Current tests reflect that as `create_and_extend _many` runs significantly faster for said implementation.

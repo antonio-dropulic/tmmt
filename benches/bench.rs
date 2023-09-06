@@ -1,6 +1,9 @@
 use std::ptr::copy_nonoverlapping;
 
-use tmmt::*;
+use tmmt::hash_mine::HashMine;
+use tmmt::two_ptr_mine::TwoPtrMine;
+
+use tmmt::mine::Mine as MineTrait;
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 
@@ -71,38 +74,79 @@ const INPUT_BLOCKS_25: [Block; 1000] = generate_input_blocks(BLOCKS_25);
 
 pub fn mine_initialization_bench(c: &mut Criterion) {
     let mut g = c.benchmark_group("Mine::new");
-    let id = |n: usize| BenchmarkId::new("Window size", n);
+    let hash_mine_id = |n: usize| BenchmarkId::new("HashMine", n);
+    let two_ptr_mine_mine_id = |n: usize| BenchmarkId::new("TwoPtrMine", n);
 
-    g.bench_function(id(25), |b| b.iter(|| Mine::new(black_box(BLOCKS_25))));
-    g.bench_function(id(50), |b| b.iter(|| Mine::new(black_box(BLOCKS_50))));
-    g.bench_function(id(100), |b| b.iter(|| Mine::new(black_box(BLOCKS_100))));
+    g.bench_function(hash_mine_id(25), |b| {
+        b.iter(|| HashMine::new(black_box(BLOCKS_25)))
+    });
+    g.bench_function(two_ptr_mine_mine_id(25), |b| {
+        b.iter(|| TwoPtrMine::new(black_box(BLOCKS_25)))
+    });
+
+    g.bench_function(hash_mine_id(50), |b| {
+        b.iter(|| HashMine::new(black_box(BLOCKS_50)))
+    });
+    g.bench_function(two_ptr_mine_mine_id(50), |b| {
+        b.iter(|| TwoPtrMine::new(black_box(BLOCKS_50)))
+    });
+
+    g.bench_function(hash_mine_id(100), |b| {
+        b.iter(|| HashMine::new(black_box(BLOCKS_100)))
+    });
+    g.bench_function(two_ptr_mine_mine_id(100), |b| {
+        b.iter(|| TwoPtrMine::new(black_box(BLOCKS_100)))
+    });
 }
 
 pub fn many_blocks_validation(c: &mut Criterion) {
     let mut g = c.benchmark_group("Mine::try_create_and_extend");
-    let id = |n: usize| BenchmarkId::new("Window size", n);
+    let hash_mine_id = |n: usize| BenchmarkId::new("HashMine", n);
+    let two_ptr_mine_mine_id = |n: usize| BenchmarkId::new("TwoPtrMine", n);
 
-    g.bench_function(id(25), |b| {
+    g.bench_function(hash_mine_id(25), |b| {
         b.iter(|| {
-            Mine::<25, _>::try_create_and_extend(black_box(INPUT_BLOCKS_25))
+            HashMine::<25, _>::try_create_and_extend(black_box(INPUT_BLOCKS_25))
+                .expect("testing only the happy path")
+        })
+    });
+    g.bench_function(two_ptr_mine_mine_id(25), |b| {
+        b.iter(|| {
+            TwoPtrMine::<25, _>::try_create_and_extend(black_box(INPUT_BLOCKS_25))
                 .expect("testing only the happy path")
         })
     });
 
-    g.bench_function(id(50), |b| {
+    g.bench_function(hash_mine_id(50), |b| {
         b.iter(|| {
-            Mine::<50, _>::try_create_and_extend(black_box(INPUT_BLOCKS_50))
+            HashMine::<50, _>::try_create_and_extend(black_box(INPUT_BLOCKS_50))
+                .expect("testing only the happy path")
+        })
+    });
+    g.bench_function(two_ptr_mine_mine_id(50), |b| {
+        b.iter(|| {
+            TwoPtrMine::<50, _>::try_create_and_extend(black_box(INPUT_BLOCKS_50))
                 .expect("testing only the happy path")
         })
     });
 
-    g.bench_function(id(100), |b| {
+    g.bench_function(hash_mine_id(100), |b| {
         b.iter(|| {
-            Mine::<100, _>::try_create_and_extend(black_box(INPUT_BLOCKS_100))
+            HashMine::<100, _>::try_create_and_extend(black_box(INPUT_BLOCKS_100))
+                .expect("testing only the happy path")
+        })
+    });
+    g.bench_function(two_ptr_mine_mine_id(100), |b| {
+        b.iter(|| {
+            TwoPtrMine::<100, _>::try_create_and_extend(black_box(INPUT_BLOCKS_50))
                 .expect("testing only the happy path")
         })
     });
 }
 
-criterion_group!(benches, mine_initialization_bench, many_blocks_validation);
+criterion_group!(
+    benches,
+    //mine_initialization_bench,
+    many_blocks_validation
+);
 criterion_main!(benches);
