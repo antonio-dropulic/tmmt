@@ -3,12 +3,11 @@ use std::ptr::copy_nonoverlapping;
 use tmmt::*;
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use itertools::Itertools;
 
 // size found in test file
 type Block = u128;
 
-const fn generate_input_blocks<const SIZE: usize>() -> [Block; SIZE] {
+const fn generate_initialization_blocks<const SIZE: usize>() -> [Block; SIZE] {
     let initial_blocks = [0; SIZE];
 
     unsafe {
@@ -18,6 +17,34 @@ const fn generate_input_blocks<const SIZE: usize>() -> [Block; SIZE] {
     }
 
     initial_blocks
+}
+
+const fn generate_input_blocks<const INITIAL_BLOCKS_SIZE: usize, const INPUT_BLOCKS_SIZE: usize>(
+    initial_blocks: [Block; INITIAL_BLOCKS_SIZE],
+) -> [Block; INPUT_BLOCKS_SIZE] {
+    // INITIAL BLOCK SIZE < INPUT_BLOCKS_SIZE
+    let mut input_blocks = [0 as Block; INPUT_BLOCKS_SIZE];
+
+    // copy the initial blocks to the start of input blocks
+    unsafe {
+        let arr_ptr = &input_blocks as *const [Block];
+        let arr_ptr_mut = arr_ptr as *mut [Block] as *mut Block;
+        copy_nonoverlapping(initial_blocks.as_ptr(), arr_ptr_mut, INITIAL_BLOCKS_SIZE)
+    }
+
+    // a window for generating new items from old consecutive items
+    let validation_window_size = INITIAL_BLOCKS_SIZE;
+
+    // first free index in the input blocks
+    let mut i = validation_window_size;
+    // create the rest of the Blocks
+    while i < INPUT_BLOCKS_SIZE {
+        input_blocks[i] =
+            input_blocks[i - validation_window_size] + input_blocks[i - validation_window_size + 1];
+        i += 1;
+    }
+
+    input_blocks
 }
 
 const BLOCKS_100: [Block; 100] = [
@@ -35,86 +62,47 @@ const BLOCKS_100: [Block; 100] = [
     1263473894, 673016011, 1891853499, 46942072, 1931734276, 128544521, 2034116478, 1575091383,
     1568064634, 1153764404, 1142178529, 1283151306,
 ];
+const BLOCKS_50: [Block; 50] = generate_initialization_blocks();
+const BLOCKS_25: [Block; 25] = generate_initialization_blocks();
 
-const BLOCKS_50: [Block; 50] = generate_input_blocks();
-const BLOCKS_5: [Block; 5] = generate_input_blocks();
+const INPUT_BLOCKS_100: [Block; 1000] = generate_input_blocks(BLOCKS_100);
+const INPUT_BLOCKS_50: [Block; 1000] = generate_input_blocks(BLOCKS_50);
+const INPUT_BLOCKS_25: [Block; 1000] = generate_input_blocks(BLOCKS_25);
 
 pub fn mine_initialization_bench(c: &mut Criterion) {
     let mut g = c.benchmark_group("Mine::new");
     let id = |n: usize| BenchmarkId::new("Window size", n);
 
-    g.bench_function(id(5), |b| b.iter(|| Mine::new(black_box(BLOCKS_5))));
+    g.bench_function(id(25), |b| b.iter(|| Mine::new(black_box(BLOCKS_25))));
     g.bench_function(id(50), |b| b.iter(|| Mine::new(black_box(BLOCKS_50))));
     g.bench_function(id(100), |b| b.iter(|| Mine::new(black_box(BLOCKS_100))));
 }
 
-pub fn single_block_validation(c: &mut Criterion) {
-    let mut g = c.benchmark_group("Mine::try_extend_one");
+pub fn many_blocks_validation(c: &mut Criterion) {
+    let mut g = c.benchmark_group("Mine::try_create_and_extend");
     let id = |n: usize| BenchmarkId::new("Window size", n);
 
-    let initial_blocks = BLOCKS_100;
-    let mut mine = Mine::new(initial_blocks);
-    let block_sum = initial_blocks[2] + initial_blocks[4];
-
-    assert_eq!(
-        mine.clone().try_extend_one(black_box(block_sum)),
-        Ok(()),
-        "Sanity check. Making sure the happy path is being benched"
-    );
-
-    g.bench_function(id(5), |b| {
-        b.iter(|| mine.try_extend_one(black_box(block_sum)))
+    g.bench_function(id(25), |b| {
+        b.iter(|| {
+            Mine::<25, _>::try_create_and_extend(black_box(INPUT_BLOCKS_25))
+                .expect("testing only the happy path")
+        })
     });
-
-    let initial_blocks = BLOCKS_100;
-    let block_sum = initial_blocks[21] + initial_blocks[38];
-    let mut mine = Mine::new(initial_blocks);
-
-    assert_eq!(
-        mine.clone().try_extend_one(black_box(block_sum)),
-        Ok(()),
-        "Sanity check that the happy path is being benched"
-    );
 
     g.bench_function(id(50), |b| {
-        b.iter(|| mine.try_extend_one(black_box(block_sum)))
+        b.iter(|| {
+            Mine::<50, _>::try_create_and_extend(black_box(INPUT_BLOCKS_50))
+                .expect("testing only the happy path")
+        })
     });
-
-    let initial_blocks = BLOCKS_100;
-    let block_sum = initial_blocks[31] + initial_blocks[82];
-    let mut mine = Mine::new(initial_blocks);
-
-    assert_eq!(
-        mine.clone().try_extend_one(black_box(block_sum)),
-        Ok(()),
-        "Sanity check that the happy path is being benched"
-    );
 
     g.bench_function(id(100), |b| {
-        b.iter(|| mine.try_extend_one(black_box(block_sum)))
+        b.iter(|| {
+            Mine::<100, _>::try_create_and_extend(black_box(INPUT_BLOCKS_100))
+                .expect("testing only the happy path")
+        })
     });
 }
 
-pub fn many_blocks_validation(c: &mut Criterion) {
-    let mut mine = Mine::new(BLOCKS_100);
-
-    let blocks_for_validation: [Block; BLOCKS_100.len() - 1] = BLOCKS_100
-        .into_iter()
-        .tuple_windows::<(_, _)>()
-        .map(|(a, b)| a + b)
-        .collect::<Vec<_>>()
-        .try_into()
-        .unwrap();
-
-    c.bench_function("Many blocks validation. Validation window size: 100", |b| {
-        b.iter(|| mine.try_extend(black_box(blocks_for_validation)))
-    });
-}
-
-criterion_group!(
-    benches,
-    mine_initialization_bench,
-    single_block_validation,
-    many_blocks_validation
-);
+criterion_group!(benches, mine_initialization_bench, many_blocks_validation);
 criterion_main!(benches);

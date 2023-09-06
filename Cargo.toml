@@ -10,7 +10,6 @@ multiset = { git = "https://github.com/antonio-dropulic/multiset", branch = "wit
 thiserror = "1.0.47"
 
 [dev-dependencies]
-itertools = "0.11.0"
 criterion = "0.5.1"
 pretty_assertions = "1.4.0"
 

@@ -43,5 +43,8 @@ This test is implemented and passing in [`tests::example`](https://github.com/an
 
 I've played around with two pointer implementation of the validation algorithm. It made initialization much faster. $O(log(N))$ instead $O(N^2)$ where N is validation window size. But validation time was still slower. Both validation implementations are bounded by $O(N)$.
 
-Single block validation benchmark is currently broken. It is benchmarking the error path of the try_extend_one. Generating large enough sets to benchmark with criterion might be imposssible due to the large number of iterations criterion does and the fact that a non 0 sample set needs to continue growing. Cloning on every iteration 
-would be noisy. I might play with this in the future to fix it.
+My initial idea driving the implementation was that validating elements and extending the mine is more important than initialization.
+If assume that block values in the mine are non zero, or at least that the initialization sequence has less than two zeroes. Then we come
+to an iteration count bound on every mine: $VALIDATION_WINDOW_SIZE * log(Block::SIZE) - 1$. Imagine we start with a validation window of all ones. Next validation window that has the smallest elements possible is a validation window [2,2, ... , 3]. Next one doubles, and so forth.
+
+This suggests that my initial idea was flawed. I now want to make tests that test the duration of creation and maximum number of iterations. (Current tests seem decent enough). This may change my perception of how the two pointer implementation performs.
