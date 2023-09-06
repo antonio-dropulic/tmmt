@@ -4,8 +4,8 @@ use multiset::HashMultiSet;
 use thiserror::Error;
 
 /// Block in a [Mine]. Has blanket implementation for numerical types.
-pub trait Block: PartialEq + Eq + PartialOrd + Ord + Add<Output = Self> + Sized {}
-impl<T> Block for T where T: PartialEq + Eq + PartialOrd + Ord + Add<Output = Self> + Sized {}
+pub trait Block: Eq + Add<Output = Self> + Sized {}
+impl<T> Block for T where T: Eq + Add<Output = Self> + Sized {}
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum MineError<const VALIDATION_WINDOW_SIZE: usize, B: Block> {
@@ -107,6 +107,11 @@ where
 
             Ok(())
         }
+    }
+
+    /// Get the underlying validation blocks window
+    pub fn validation_blocks(&self) -> &VecDeque<B> {
+        &self.validation_blocks
     }
 }
 
