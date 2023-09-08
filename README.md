@@ -64,10 +64,10 @@ I've created both solutions and used criterion to test the performance. Expected
  A walk with my duck got me to realize I've misjudged the problem. The key idea I initially missed was that $N$ is bounded. To see why imagine the initialization set to be as small as
 possible[^2]: $[1;I]$. Then the smallest valid value we can give to `Mine::try_extend_one` is **2**, and crucially we can only do that $I-1$ times.
 Generally speaking every I entries the smallest valid entry value must be doubled[^3].
-By continuing this logic we can see $N < I \cdot Block::Bits$. In the case of $Block = u128$ and $I=100$ that is mearly $12 800$ iterations.
+By continuing this logic we can see $N < I \cdot B::Bits$. In the case of $B = u128$ and $I=100$ that is merely $12 800$ iterations.
 
 This informed me that trying to test just the running time of `Mine::try_extend_one` is probably not a good idea. I've moved on
-to testing initialization and iteration over a large set of values. This way the 1st solution proved wastly superior. {TODO: link criterion}
+to testing initialization and iteration over a large set of values. This way the 1st solution proved vastly superior. {TODO: link criterion}
 
 ##
 
