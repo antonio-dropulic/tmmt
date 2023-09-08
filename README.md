@@ -35,8 +35,6 @@ Smaller scale test was also provided for a window of 5 instead of 100. Expected 
 576
 ```
 
-Both tests can be found in: TODO: add link.
-
 ## Solution discussion
 
 Naming convention:
