@@ -10,7 +10,7 @@ pub struct TwoPtrMine<const VALIDATION_WINDOW_SIZE: usize, B: Block + Copy + Ord
     /// Holds all the possible two element sums from the [validation_blocks](Self::validation_blocks).
     /// Used for quick validation of new blocks.
     ordered_validation_blocks: Vec<B>,
-    /// Used for tracking how many blocks have been validated
+    /// Tracks how many blocks have been validated
     total_blocks: usize,
 }
 
@@ -61,10 +61,9 @@ where
                 std::cmp::Ordering::Greater => max_item = max_to_min.next(),
             }
 
-            // TODO: we can search for old block in this loop as an optimization attempt
+            // TODO: we can search for the old block in this loop as an optimization attempt
         }
 
-        // TODO: returning a flag might make more obvious code
         // NEW BLOCK IS VALID
         // now we can safely remove/insert items to validation blocks
 
@@ -74,9 +73,9 @@ where
             .expect("validation_blocks have a minimum size VALIDATION_WINDOW_SIZE");
         self.validation_blocks.push_back(new_block);
 
-        // TODO: we can add a mapping validation blocks -> ordered validation blocks on initialization
-        // try as an optimization
-        // TODO: linear search may be faster!
+        // TODO:
+        // - try mapping validation blocks to ordered validation blocks when you perform sort
+        // - try linear search, for small enough windows / block sizes it may be faster
         let old_block_idx = self
             .ordered_validation_blocks
             .binary_search(&old_block)
@@ -96,6 +95,7 @@ where
     }
 }
 
+// TODO: macro for tests
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;

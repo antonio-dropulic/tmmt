@@ -6,13 +6,11 @@ This project is a coding challenge. The challenge said something about turtles.
 
 The first 100 numbers of the mine are always secure, but after that, the next number is only safe if it is the sum of 2 numbers in the previous 100.
 
-Test data given in the `resources/challenge_input.txt`. Unclear what the result should be.
-Some inputs in `resources/challenge_input.txt` are larger than `u64::MAX` but all are smaller
+Test data given in the `resources/challenge_input.txt`.
+Inspection revealed all some values in `resources/challenge_input.txt` are larger than `u64::MAX`, while all values are smaller
 than `u128::MAX / 2`.
 
-Test of the input data: https://github.com/antonio-dropulic/tmmt/blob/c70e887fd7b191b92a9f208749ed48108b748067/src/lib.rs#L327-L344
-
-Smaller scale test was also provided for a window of 5 instead of 100.
+Smaller scale test was also provided for a window of 5 instead of 100. Expected failing value is 127.
 
 ```
 35
@@ -37,15 +35,46 @@ Smaller scale test was also provided for a window of 5 instead of 100.
 576
 ```
 
-This test is implemented and passing in [`tests::example`](https://github.com/antonio-dropulic/tmmt/blob/ad94a468d3d265b9bf0ada6ac4c6c767fe7df800/src/lib.rs#L263-L286).
+Both tests can be found in: TODO: add link.
 
-## Notes:
+## Solution discussion
 
-Two competing implementations are given. One using the hash map and one using the two pointer approach. Initially I thought of initialization as negligible - validation window is limited, number of incoming blocks isn't - and the idea was to have `try_extend_one` to be as fast as possible.
-That is what hash map implementation was meant to do. Having difficulty creating a criterion test for `try_extend_one` I realized I have misjudged the problem.
+Naming convention:
 
-The key idea I missed when analyzing the problem was that the sequence of values that can be given for validation is limited. If we assume the initial values are non zero (Idea not enforced in the code, but still reasonable given uniform datasets). Then the
-number of iterations over `try_extend_one` is necessarily bounded. Imagine we start with a validation window size N with all ones: `[1; N]`. The smallest value we can then validate is 2. and we can do that N - 1 times before we have to double the smallest value.
-That means the iteration count is bounded by $N * Block::BITS$.
+- $B$ - short for block, type of the numerical values in the mine
+- $I$ - validation sequence size, size of initial data.
+- $N$ - number of iterations for valid blocks after initialization
 
-This suggests `TwoPointerMine` is better. Current tests reflect that as `create_and_extend _many` runs significantly faster for said implementation.
+##
+
+After the initial read through motivation for the api and implementation was driven by:
+- $I$ is fixed
+- $N >> I$
+
+My focus was to create a fast method for validating entries after initialization. I call these methods `Mine::try_extend one` and `Mine::new`. Two implementations came to mind.
+1) Solve the two sum problem using two pointer technique over a sorted validation sequence - `TwoPtrMine`
+2) Solve the two sum problem by precomputing all possible sums and storing them in a HashSet - `HashMine`
+
+Both solutions have $O(I)$ running time for `Mine::try_extend one`. Running time for `TwoPtrMine::new` is $O(Ilog_2I)$ and $O(I)$ memory. `HashMine::new` is $O(I^2)$ running time and memory.
+
+This should signal the 1st solution is superior but I wanted to test how `Mine::try_extend_one` performed in both implementations[^1]. Since use cases are unknown, maybe sacrificing initialization performance is worth for possible marginal gains in performance of validating new entries.
+
+##
+
+I've created both solutions and used criterion to test the performance. Expectedly `TwoPtrMine::new` performed better. But that was not what I was interested in testing. Testing `Mine::try_extend_one` was unexpectedly hard. I got results that didn't depend on $I$. This was a red flag, but it took me some time to realize I was only testing the error path.
+
+ A walk with my duck got me to realize I've misjudged the problem. The key idea I initially missed was that $N$ is bounded. To see why imagine the initialization set to be as small as
+possible[^2]: $[1;I]$. Then the smallest valid value we can give to `Mine::try_extend_one` is **2**, and crucially we can only do that $I-1$ times.
+Generally speaking every I entries the smallest valid entry value must be doubled[^3].
+By continuing this logic we can see $N < I \cdot Block::Bits$. In the case of $Block = u128$ and $I=100$ that is mearly $12 800$ iterations.
+
+This informed me that trying to test just the running time of `Mine::try_extend_one` is probably not a good idea. I've moved on
+to testing initialization and iteration over a large set of values. This way the 1st solution proved wastly superior. {TODO: link criterion}
+
+##
+
+The challenge was deceptively simple, but turned out to be somewhat tricky. I'm keeping both solutions and the explanation because I found the journey fun and hopefully it can be informative to someone else.
+
+[^1]: This was probably a futile attempt. $I$ reads and writes to a hash map should be expensive.
+[^2]: having [0,0, 1, ..] would be trivial.
+[^3]: this is not precise but the bound remains true. I+1th value must be doubled.

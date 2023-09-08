@@ -3,16 +3,17 @@ use std::{iter::Fuse, ops::Add};
 use thiserror::Error;
 
 /// Block in a [Mine]. Has blanket implementation for numerical types.
+/// To find out how blocks are used see [Mine] documentation.
 pub trait Block: Eq + Add<Output = Self> + Sized {}
 impl<T> Block for T where T: Eq + Add<Output = Self> + Sized {}
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum MineError<const VALIDATION_WINDOW_SIZE: usize, B: Block> {
     #[error(
-        "Initialization blocks must have at least: {} blocks. Size of the blocks provided: {0}",
+        "Initialization sequence must have at least {} blocks. Size of the blocks provided: {0}",
         VALIDATION_WINDOW_SIZE
     )]
-    InvalidInitializationBlocksSize,
+    InvalidInitializationSequenceLen,
     #[error(
         "Validation for block number {1} failed. Invalid block value: {0}.
         A block is valid iff it is the sum of any two blocks in the previous: {}.",
@@ -28,7 +29,7 @@ pub enum MineError<const VALIDATION_WINDOW_SIZE: usize, B: Block> {
 /// [VALIDATION_WINDOW_SIZE]: Mine<VALIDATION_WINDOW_SIZE>s
 pub trait Mine<const VALIDATION_WINDOW_SIZE: usize, B: Block> {
     /// Create a new mine with given `initialization_blocks`.
-    /// No validation is performed on the initialization blocks.
+    /// No validation is performed on the blocks in the initialization sequence.
     fn new(initialization_blocks: [B; VALIDATION_WINDOW_SIZE]) -> Self;
     /// Try to extend the [Mine] with all the items from the
     /// `blocks` iterator. The method is successful if all
@@ -38,8 +39,8 @@ pub trait Mine<const VALIDATION_WINDOW_SIZE: usize, B: Block> {
     /// to the mine.
     fn try_extend_one(&mut self, new_block: B) -> Result<(), MineError<VALIDATION_WINDOW_SIZE, B>>;
 
-    /// Same as [Mine::new] except if the initialization blocks fail to convert
-    /// to the desired array [MineError::InvalidInitializationBlocksSize]
+    /// Same as [Mine::new] except if the initialization sequence fail to convert
+    /// to the desired array [MineError::InvalidInitializationSequenceLen]
     /// is returned.
     fn try_new(
         initialization_blocks: impl TryInto<[B; VALIDATION_WINDOW_SIZE]>,
@@ -49,7 +50,7 @@ pub trait Mine<const VALIDATION_WINDOW_SIZE: usize, B: Block> {
     {
         let initialization_blocks: [B; VALIDATION_WINDOW_SIZE] =
             initialization_blocks.try_into().map_err(|_| {
-                MineError::<VALIDATION_WINDOW_SIZE, B>::InvalidInitializationBlocksSize
+                MineError::<VALIDATION_WINDOW_SIZE, B>::InvalidInitializationSequenceLen
             })?;
 
         Ok(Self::new(initialization_blocks))
@@ -77,7 +78,7 @@ pub trait Mine<const VALIDATION_WINDOW_SIZE: usize, B: Block> {
     ///
     /// # Errors
     /// - If the `blocks` iterator length is less than [VALIDATION_WINDOW_SIZE] then
-    /// [MineError::InvalidInitializationBlocksSize] is returned.
+    /// [MineError::InvalidInitializationSequenceLen] is returned.
     /// - If any remaining element can't be validated [MineError::InvalidBlock] is returned.
     ///
     /// [VALIDATION_WINDOW_SIZE]: Mine<VALIDATION_WINDOW_SIZE>
@@ -92,7 +93,7 @@ pub trait Mine<const VALIDATION_WINDOW_SIZE: usize, B: Block> {
 
         let initialization_blocks = initialization_blocks
             .try_into()
-            .map_err(|_| MineError::InvalidInitializationBlocksSize)?;
+            .map_err(|_| MineError::InvalidInitializationSequenceLen)?;
 
         let mut mine = Self::new(initialization_blocks);
 
