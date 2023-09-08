@@ -75,6 +75,6 @@ to testing initialization and iteration over a large set of values. This way the
 
 The challenge was deceptively simple, but turned out to be somewhat tricky. I'm keeping both solutions and the explanation because I found the journey fun and hopefully it can be informative to someone else.
 
-[^1]: This was probably a futile attempt. $I$ reads and writes to a hash map should be expensive.
+[^1]: This was probably a futile attempt. *I* reads and writes to a hash map should be expensive.
 [^2]: having [0,0, 1, ..] would be trivial.
 [^3]: this is not precise but the bound remains true. I+1th value must be doubled.
